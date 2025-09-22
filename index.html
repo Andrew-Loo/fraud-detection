@@ -1,0 +1,447 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Fraud Detection</title>
+  <style>
+    :root { --bg:#0b1020; --panel:#141b34; --muted:#7f8db2; --text:#e8eeff; --brand:#6aa2ff; --ok:#37d67a; --warn:#ffb020; --err:#ff5c5c; --idle:#5b6b8f; }
+    *{box-sizing:border-box}
+    body{margin:0; font-family:ui-sans-serif, system-ui, -apple-system, Segoe UI, Roboto, "Helvetica Neue", Arial; background:var(--bg); color:var(--text)}
+    header{display:flex; align-items:center; gap:.75rem; padding:1rem 1.25rem; background:linear-gradient(180deg, #0f1630, #0d1430); position:sticky; top:0; z-index:10; border-bottom:1px solid #1e2645}
+    header h1{font-size:1.05rem; font-weight:600; margin:0}
+    header .led{width:.75rem;height:.75rem;border-radius:999px;background:var(--idle); box-shadow:0 0 0 2px rgba(255,255,255,.06) inset, 0 0 10px rgba(0,0,0,.4)}
+    .container{max-width:1200px; margin:1rem auto; padding:0 1rem 2rem; display:grid; gap:1rem}
+    .card{background:var(--panel); border:1px solid #1e2645; border-radius:16px; box-shadow:0 10px 30px rgba(0,0,0,.25);}
+    .grid{display:grid; grid-template-columns:1fr 1fr; gap:1rem}
+    .controls{padding:1rem 1.25rem; display:grid; gap:.75rem}
+    label{font-size:.85rem; color:var(--muted)}
+    input[type="text"], input[type="number"], textarea, select{width:100%; background:#0f1630; color:var(--text); border:1px solid #263056; border-radius:10px; padding:.65rem .75rem; outline:none}
+    input[type="file"]{color:var(--muted)}
+    .row{display:grid; grid-template-columns:1fr 1fr; gap:.75rem}
+    button{background:var(--brand); color:white; border:none; padding:.7rem 1rem; border-radius:12px; font-weight:600; cursor:pointer}
+    button.secondary{background:#22305d}
+    button.ghost{background:transparent; border:1px dashed #2b3764}
+    button:disabled{opacity:.6; cursor:not-allowed}
+    .actions{display:flex; align-items:center; gap:.5rem; flex-wrap:wrap}
+    .actions .led{width:.6rem;height:.6rem;border-radius:999px;background:var(--idle)}
+    .preview{padding:1rem; border-left:1px dashed #2a3561; display:flex; flex-direction:column; gap:.75rem}
+    .preview img{width:100%; max-height:360px; object-fit:contain; border-radius:12px; background:#0f1630; border:1px solid #263056}
+    .result-header{display:flex; align-items:center; justify-content:space-between; padding:1rem 1.25rem; border-top:1px solid #1e2645}
+    .result-header h2{margin:0; font-size:1rem}
+    .results{padding:1rem; display:grid; gap:.75rem}
+    .result{display:grid; grid-template-columns:120px 1fr; gap:1rem; align-items:start; background:#0f1630; border:1px solid #263056; border-radius:12px; padding:.75rem}
+    .thumb{width:120px; height:90px; border-radius:10px; background:#0c1227; border:1px solid #22305d; display:flex; align-items:center; justify-content:center; overflow:hidden}
+    .thumb img{width:100%; height:100%; object-fit:cover}
+    .meta{font-size:.85rem; color:#cfd8ff}
+    .meta .k{color:var(--muted); margin-right:.25rem}
+    .score{font-weight:700}
+    .pill{display:inline-flex; align-items:center; gap:.4rem; padding:.25rem .5rem; border-radius:999px; font-size:.75rem; background:#1a2449; color:#d9e3ff}
+    .muted{color:var(--muted)}
+    details{background:#0f1630; border:1px solid #263056; padding:.5rem .75rem; border-radius:10px}
+    code{font-family:ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono", monospace; font-size:.8rem}
+    .foot{padding:.75rem 1rem; color:var(--muted); font-size:.8rem}
+    .panel-title{padding:1rem 1.25rem; border-bottom:1px solid #1e2645; font-weight:700; color:#dbe5ff}
+    .kv{display:grid; grid-template-columns:200px 1fr; gap:.5rem .75rem; font-size:.85rem; padding: .75rem 1rem}
+    .kv .k{color:var(--muted)}
+    .testcases{padding: .5rem 1rem 1rem; display:grid; gap:.5rem}
+    .badge{font-size:.7rem; background:#1b2446; padding:.15rem .45rem; border-radius:6px; margin-left:.25rem; color:#bcd0ff}
+    .alert{margin:0 1rem; border:1px solid #38457a; background:#11193a; border-radius:12px; padding:.75rem 1rem; color:#d5e0ff}
+  </style>
+</head>
+<body>
+  <header>
+    <div class="led" id="topLed" title="Overall status"></div>
+    <h1>OpenCLIP Image Similarity – Demo & CORS/Mixed-Content Debugger</h1>
+  </header>
+
+  <div class="container">
+    <!-- Alert / Tips -->
+    <div class="alert" id="alertBox" hidden></div>
+
+    <!-- Main Search Card -->
+    <div class="card">
+      <div class="panel-title">Search Similar Issues</div>
+      <div class="grid">
+        <div class="controls">
+          <div class="row">
+            <div>
+              <label>API Base URL <span class="muted">(leave blank for same-origin)</span></label>
+              <input id="baseUrl" type="text" placeholder="https://api.example.com" />
+            </div>
+            <div>
+              <label>Endpoint</label>
+              <input id="endpoint" type="text" value="/search-image" />
+            </div>
+          </div>
+
+          <div>
+            <label>Image URL (http/https or data URI)</label>
+            <input id="imgUrl" type="text" placeholder="https://...jpg" />
+          </div>
+
+          <div>
+            <label>Or upload a local image</label>
+            <input id="imgFile" type="file" accept="image/*" />
+          </div>
+
+          <div class="row">
+            <div>
+              <label>k (top-K)</label>
+              <input id="k" type="number" value="6" min="1" max="200" />
+            </div>
+            <div>
+              <label>min_score</label>
+              <input id="minScore" type="number" value="0.50" min="0" max="1" step="0.01" />
+            </div>
+          </div>
+
+          <div class="row">
+            <div>
+              <label>num_candidates</label>
+              <input id="numCandidates" type="number" value="200" min="10" />
+            </div>
+            <div>
+              <label>Optional filters (JSON, matched against meta.*)</label>
+              <input id="filters" type="text" placeholder='{"tenant":"Tanjong Pagar Town Council"}' />
+            </div>
+          </div>
+
+          <div class="row">
+            <div>
+              <label>Content-Type</label>
+              <select id="contentType">
+                <option value="application/json" selected>application/json</option>
+                <option value="text/plain">text/plain (dev only; server must parse raw)</option>
+              </select>
+            </div>
+            <div>
+              <label>&nbsp;</label>
+              <div style="display:flex; align-items:center; gap:.5rem;">
+                <label style="display:flex; align-items:center; gap:.35rem; font-size:.9rem; color:var(--muted)"><input id="sendCreds" type="checkbox" /> Send cookies (credentials)</label>
+              </div>
+            </div>
+          </div>
+
+          <div class="actions">
+            <button id="btnSearch">Search Similar</button>
+            <button class="secondary" id="btnClear">Clear</button>
+            <div class="led" id="btnLed" title="Search status"></div>
+            <span class="muted" id="statusText">Idle</span>
+          </div>
+        </div>
+
+        <div class="preview">
+          <label>Query Preview</label>
+          <div id="previewBox" class="thumb" style="width:100%; height:280px;">
+            <span class="muted">No image</span>
+          </div>
+          <details open>
+            <summary>Payload (debug)</summary>
+            <pre id="payloadDebug" style="white-space:pre-wrap"></pre>
+          </details>
+          <details>
+            <summary>Browser Origin & Checks</summary>
+            <div class="kv">
+              <div class="k">Page origin</div>
+              <div id="originRow"></div>
+              <div class="k">Mixed-content risk</div>
+              <div id="mixedRow"></div>
+              <div class="k">Preflight expected</div>
+              <div id="preflightRow"></div>
+            </div>
+          </details>
+        </div>
+      </div>
+
+      <div class="result-header">
+        <h2>Similar Issues</h2>
+        <div class="pill"><span id="count">0</span><span>results</span></div>
+      </div>
+      <div id="results" class="results"></div>
+      <div class="foot">POSTs to <code>/search-image</code> and renders <code>external_id</code>, <code>meta</code>, <code>image_url</code>/<code>image_path</code>, and similarity <code>score</code>. LED in header and next to the button shows request state.</div>
+    </div>
+
+    <!-- Diagnostics Card -->
+    <div class="card">
+      <div class="panel-title">Connectivity & CORS Diagnostics</div>
+      <div class="kv">
+        <div class="k">API health check</div>
+        <div>
+          <button class="ghost" id="btnPing">GET /healthz</button>
+          <span id="pingOut" class="muted"></span>
+        </div>
+        <div class="k">OPTIONS support</div>
+        <div>
+          <button class="ghost" id="btnOptions">OPTIONS (preflight probe)</button>
+          <span id="optOut" class="muted"></span>
+        </div>
+        <div class="k">CORS headers seen*</div>
+        <div id="corsSeen" class="muted">(Only visible if the response itself allows CORS)</div>
+        <div class="k">Suggested curl</div>
+        <div><code id="curlBox"></code></div>
+      </div>
+      <div class="foot">* If you still get <code>TypeError: Failed to fetch</code>, the browser likely blocked due to CORS or the server is unreachable. Ensure your API replies with appropriate <code>Access-Control-Allow-*</code> and that <code>OPTIONS</code> is allowed. If this HTML is served from <em>https://</em>, your API must also be <em>https://</em>.</div>
+    </div>
+
+    <!-- Test Cases Card -->
+    <div class="card">
+      <div class="panel-title">Sample Test Cases</div>
+      <div class="testcases" id="tests"></div>
+      <div class="foot">Click a test case to autofill the image URL. These are examples; choose ones that exist in your indexed dataset for meaningful matches.</div>
+    </div>
+  </div>
+
+  <script>
+    const $ = (id)=>document.getElementById(id);
+    const topLed = $("topLed"), btnLed = $("btnLed"), statusText = $("statusText");
+
+    const setLED = (el, state)=>{
+      const map = { idle:"var(--idle)", searching:"var(--warn)", ok:"var(--ok)", error:"var(--err)" };
+      el.style.background = map[state] || "var(--idle)";
+    }
+    const setAllLED = (state)=>{ setLED(topLed,state); setLED(btnLed,state); statusText.textContent = ({idle:"Idle", searching:"Searching…", ok:"Done", error:"Error"})[state] }
+
+    const imgUrl = $("imgUrl"), imgFile = $("imgFile"), previewBox = $("previewBox");
+
+    const showPreview = (src)=>{
+      previewBox.innerHTML = "";
+      const img = new Image();
+      img.src = src; img.alt = "preview";
+      img.style.width = "100%"; img.style.height = "100%"; img.style.objectFit = "contain";
+      previewBox.appendChild(img);
+    }
+
+    imgFile.addEventListener('change', async (e)=>{
+      const f = e.target.files?.[0]; if(!f) return;
+      const reader = new FileReader();
+      reader.onload = ()=>{ const dataUrl = reader.result; imgUrl.value = dataUrl; showPreview(dataUrl); };
+      reader.readAsDataURL(f);
+    });
+    imgUrl.addEventListener('input', ()=>{ if(imgUrl.value) showPreview(imgUrl.value); });
+
+    const renderResults = (items=[])=>{
+      const wrap = $("results");
+      wrap.innerHTML = "";
+      $("count").textContent = items.length;
+      if(!items.length){ wrap.innerHTML = '<div class="muted">No matches ≥ min_score.</div>'; return; }
+      for(const r of items){
+        const d = document.createElement('div'); d.className = 'result';
+        const thumb = document.createElement('div'); thumb.className = 'thumb';
+        if(r.image_url){ const im = new Image(); im.src = r.image_url; thumb.appendChild(im); }
+        else { thumb.innerHTML = '<span class="muted">'+(r.image_path?.split('/').pop()||'no image')+'</span>'; }
+        const body = document.createElement('div');
+        const title = document.createElement('div'); title.innerHTML = `<span class="score">Score: ${r.score?.toFixed?.(4)??r.score}</span>`;
+        const meta = document.createElement('div'); meta.className='meta';
+        const exid = r.external_id? `<div><span class="k">external_id</span> ${escapeHtml(String(r.external_id))}</div>` : '';
+        const src = r.image_url? `<div><span class="k">image_url</span> <a href="${r.image_url}" target="_blank">open</a></div>` : (r.image_path? `<div><span class="k">image_path</span> ${escapeHtml(String(r.image_path))}</div>` : '');
+        const metaPretty = r.meta? `<details><summary>meta</summary><code>${escapeHtml(JSON.stringify(r.meta, null, 2))}</code></details>` : '';
+        meta.innerHTML = exid + src + metaPretty;
+        body.appendChild(title); body.appendChild(meta);
+        d.appendChild(thumb); d.appendChild(body);
+        wrap.appendChild(d);
+      }
+    }
+
+    function escapeHtml(str){ return str.replace(/[&<>"']/g, (m)=>({"&":"&amp;","<":"&lt;",">":"&gt;","\"":"&quot;","'":"&#39;"})[m]); }
+
+    // Abortable fetch helper
+    async function fetchWithTimeout(url, opts={}, timeoutMs=15000){
+      const ctrl = new AbortController();
+      const id = setTimeout(()=>ctrl.abort("timeout"), timeoutMs);
+      try{
+        return await fetch(url, { cache:'no-store', ...opts, signal: ctrl.signal });
+      } finally { clearTimeout(id); }
+    }
+
+    function buildUrl(){
+      const base = $("baseUrl").value.trim().replace(/\/$/,"");
+      const ep = $("endpoint").value.trim() || "/search-image";
+      // Allow same-origin if base left blank
+      return (base ? base : "") + ep;
+    }
+
+    function checkMixedAndPreflight(){
+      const base = $("baseUrl").value.trim();
+      const origin = window.location.origin;
+      const isHttpsPage = window.location.protocol === 'https:';
+      const isHttpApi = /^http:\/\//i.test(base);
+      const isJson = $("contentType").value === 'application/json';
+      const sendCreds = $("sendCreds").checked;
+      const willPreflight = isJson || sendCreds; // application/json triggers preflight
+
+      $("originRow").textContent = origin;
+      $("preflightRow").textContent = willPreflight ? 'Yes (application/json)' + (sendCreds ? ' + credentials' : '') : 'No';
+
+      let mixed = 'None';
+      if(isHttpsPage && isHttpApi) mixed = 'Blocked: HTTPS page → HTTP API (use HTTPS or serve this page over HTTP)';
+      $("mixedRow").textContent = mixed;
+
+      const alertBox = $("alertBox");
+      if(mixed.startsWith('Blocked')){
+        alertBox.hidden = false;
+        alertBox.innerHTML = 'Mixed content will be blocked by the browser. Either:<ul><li>Serve the API over <b>HTTPS</b>, or</li><li>Open this HTML from the same <b>HTTP</b> origin as the API.</li></ul>';
+      } else {
+        alertBox.hidden = true; alertBox.innerHTML = '';
+      }
+
+      updateCurl();
+    }
+
+    async function search(){
+      const url = buildUrl();
+      const base = $("baseUrl").value.trim();
+      const image = $("imgUrl").value.trim();
+      if(!url){ alert('Provide endpoint'); return; }
+      if(!image){ alert('Provide image URL or upload a file'); return; }
+      if(window.location.protocol === 'https:' && /^http:\/\//i.test(base)){
+        alert('Mixed content is blocked (HTTPS page calling HTTP API). Use HTTPS for the API or serve this page from HTTP on the same host.');
+        return;
+      }
+
+      const k = Number($("k").value)||5;
+      const min_score = Number($("minScore").value)||0.5;
+      const num_candidates = Number($("numCandidates").value)||Math.max(100, k*20);
+      let filters = {};
+      try{ const ftxt = $("filters").value.trim(); if(ftxt) filters = JSON.parse(ftxt); }catch(err){ alert('Filters JSON invalid'); return; }
+      const payload = { image, k, min_score, num_candidates, ...(Object.keys(filters).length? {filters}: {}) };
+      $("payloadDebug").textContent = JSON.stringify(payload, null, 2);
+
+      setAllLED('searching');
+      $("btnSearch").disabled = true;
+      try{
+        const headers = { 'Content-Type': $("contentType").value };
+        const creds = $("sendCreds").checked ? 'include' : 'omit';
+        const res = await fetchWithTimeout(url, {
+          method: 'POST',
+          headers,
+          body: JSON.stringify(payload),
+          mode: 'cors',
+          credentials: creds
+        }, 20000);
+
+        // If CORS blocks, the next line may throw TypeError
+        const text = await res.text().catch(()=>"");
+        let data = {};
+        try { data = text ? JSON.parse(text) : {}; } catch { data = { raw:text }; }
+        if(!res.ok){
+          const msg = data?.detail?.error || `${res.status} ${res.statusText}`;
+          throw new Error(msg);
+        }
+        renderResults(data.results || []);
+        setAllLED('ok');
+      }catch(err){
+        console.error(err);
+        renderResults([]);
+        let hint = 'Check CORS on the API and verify URL reachability. See Diagnostics below.';
+        if(String(err).includes('AbortError')) hint = 'The request timed out. The API may be unreachable from your network.';
+        alert('Search failed: ' + (err?.message||err) + '\n' + hint);
+        setAllLED('error');
+      }finally{
+        $("btnSearch").disabled = false;
+        setTimeout(()=>setAllLED('idle'), 1500);
+      }
+    }
+
+    // Diagnostics
+    async function ping(){
+      const base = $("baseUrl").value.trim();
+      const url = (base?base:"") + '/healthz';
+      $("pingOut").textContent = '…';
+      try{
+        const res = await fetchWithTimeout(url, { method:'GET', mode:'cors', credentials: $("sendCreds").checked ? 'include':'omit' }, 8000);
+        await res.text().catch(()=>"");
+        $("pingOut").textContent = res.ok ? 'OK ' + res.status : ('HTTP ' + res.status);
+        captureCors(res);
+      }catch(e){
+        $("pingOut").textContent = 'Failed: ' + String(e.message || e);
+      }
+    }
+
+    async function optionsProbe(){
+      const url = buildUrl();
+      $("optOut").textContent = '…';
+      try{
+        const res = await fetchWithTimeout(url, { method:'OPTIONS', mode:'cors' }, 8000);
+        $("optOut").textContent = 'HTTP ' + res.status + ' ' + (res.statusText||'');
+        captureCors(res);
+      }catch(e){
+        $("optOut").textContent = 'Failed: ' + String(e.message || e);
+      }
+    }
+
+    function captureCors(res){
+      try{
+        const allowOrigin = res.headers.get('access-control-allow-origin');
+        const allowMethods = res.headers.get('access-control-allow-methods');
+        const allowHeaders = res.headers.get('access-control-allow-headers');
+        const allowCreds = res.headers.get('access-control-allow-credentials');
+        const txt = [
+          ['access-control-allow-origin', allowOrigin],
+          ['access-control-allow-methods', allowMethods],
+          ['access-control-allow-headers', allowHeaders],
+          ['access-control-allow-credentials', allowCreds],
+        ].map(([k,v])=>`<div><span class="k">${k}</span> ${v ?? '<span class="muted">(not exposed)</span>'}</div>`).join('');
+        $("corsSeen").innerHTML = txt;
+      }catch{ /* ignored */ }
+    }
+
+    function updateCurl(){
+      const base = $("baseUrl").value.trim().replace(/\/$/,"");
+      const endpoint = $("endpoint").value.trim() || "/search-image";
+      const image = $("imgUrl").value.trim()||'https://example.com/img.jpg';
+      const k = Number($("k").value)||6; const min_score = Number($("minScore").value)||0.5; const num_candidates = Number($("numCandidates").value)||200;
+      let filters = {};
+      try{ const ftxt = $("filters").value.trim(); if(ftxt) filters = JSON.parse(ftxt); }catch{}
+      const payload = JSON.stringify({ image, k, min_score, num_candidates, ...(Object.keys(filters).length? {filters}: {}) });
+      const ct = $("contentType").value;
+      const pre = base? (base+endpoint) : endpoint;
+      const curl = ct === 'text/plain'
+        ? `curl -i -X POST '${pre}' -H 'Content-Type: text/plain' --data '${payload.replace(/'/g,"'\\''")}'`
+        : `curl -i -X POST '${pre}' -H 'Content-Type: application/json' --data '${payload.replace(/'/g,"'\\''")}'`;
+      $("curlBox").textContent = curl;
+    }
+
+    // Sample test cases (kept existing, added more)
+    const TESTS = [
+      { name: 'GOfm sample 1', url: 'https://gofm.fmit.sg/pic/images/issueTaskPlan/I/420580/0_651c4ff4-ba03-4557-9d7f-8670ad889fb3.jpg' },
+      { name: 'GOfm sample 2', url: 'https://gofm.fmit.sg/pic/images/issueTaskPlan/I/420584/0_2f8b4ec7-2930-4982-ab8e-28746db023ad.jpg' },
+      { name: 'GOfm sample 3', url: 'https://gofm.fmit.sg/pic/images/issueTaskPlan/I/420510/0_e734d7e0-bb11-4bcf-91fb-f1452f91d24a.jpg' },
+      { name: 'GOfm sample 4', url: 'https://gofm.fmit.sg/pic/images/issueTaskPlan/I/420500/0_e3ff3eb7-537c-4c6d-a45d-9aa4ce255e34.jpg' },
+      // Added safe extras
+      { name: 'Tiny red dot (data URI)', url: 'data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR42mP8/x8AAwMCAO1QpQ8AAAAASUVORK5CYII=' },
+      { name: 'Public PNG (GitHub logo)', url: 'https://github.githubassets.com/images/modules/logos_page/GitHub-Mark.png' }
+    ];
+
+    function renderTests(){
+      const box = $("tests");
+      box.innerHTML = '';
+      TESTS.forEach(t=>{
+        const btn = document.createElement('button');
+        btn.className = 'ghost';
+        btn.textContent = t.name;
+        btn.addEventListener('click', ()=>{ $("imgUrl").value = t.url; showPreview(t.url); updateCurl(); });
+        const row = document.createElement('div');
+        row.appendChild(btn);
+        const span = document.createElement('span'); span.className='muted'; span.style.marginLeft = '.5rem'; span.textContent = t.url;
+        row.appendChild(span);
+        box.appendChild(row);
+      });
+    }
+
+    // Wire events
+    ["baseUrl","endpoint","imgUrl","k","minScore","numCandidates","filters","contentType"].forEach(id=>{
+      const el = $(id); if(el) el.addEventListener('input', checkMixedAndPreflight);
+    });
+    $("sendCreds").addEventListener('change', checkMixedAndPreflight);
+    $("btnSearch").addEventListener('click', search);
+    $("btnClear").addEventListener('click', ()=>{ $("results").innerHTML=''; $("count").textContent='0'; setAllLED('idle'); });
+    $("btnPing").addEventListener('click', ping);
+    $("btnOptions").addEventListener('click', optionsProbe);
+
+    // Init
+    renderTests();
+    checkMixedAndPreflight();
+  </script>
+</body>
+</html>
