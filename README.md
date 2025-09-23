@@ -5,7 +5,7 @@ Includes a single-page HTML frontend with CORS/mixed-content diagnostics.
 
 ## Demo
 Deployed via GitHub Pages:  
-https://andrew-loo.github.io/fauld-detection/
+https://fraud-detection.fmit.sg/
 
 ## Quick Start
 1. Clone this repo.
