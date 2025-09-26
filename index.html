@@ -404,31 +404,87 @@
 
     // Sample test cases (kept existing, added more)
     const TESTS = [
+      // Your real cases (newest first)
+      { name: 'Issue 432112 (New) – Collapsible gate', url: 'https://gofm.fmit.sg/pic/images/issueTaskPlan/I/432112/0_7B37FE3F-901D-458C-B5F1-78DE4F8C9FAE.jpg',
+        filters: {"tenant":"Tanjong Pagar Town Council"}, k: 6, min_score: 0.90, num_candidates: 200 },
+    
+      { name: 'Issue 417972 – Tables/benches TT top', url: 'https://gofm.fmit.sg/pic/images/issueTaskPlan/I/417972/0_9DE620E2-5F53-4D13-AE55-DFBFE9707CA9.jpg',
+        filters: {"tenant":"Tanjong Pagar Town Council"} },
+    
+      { name: 'Issue 411796 – Spalling concrete', url: 'https://gofm.fmit.sg/pic/images/issueTaskPlan/I/411796/0_EB366A54-5211-477D-8994-C1A65DEC8E8D.jpg',
+        filters: {"tenant":"Tanjong Pagar Town Council"} },
+    
+      { name: 'Issue 411729 – Crack/chipped off', url: 'https://gofm.fmit.sg/pic/images/issueTaskPlan/I/411729/0_BD9F98EB-339A-49D1-BE1D-96912082DBFC.jpg',
+        filters: {"tenant":"Tanjong Pagar Town Council"} },
+    
+      { name: 'Issue 411766 – Peeling paintwork', url: 'https://gofm.fmit.sg/pic/images/issueTaskPlan/I/411766/0_5CD1DAC5-4ABA-4629-AFBC-BDC8B8429525.jpg',
+        filters: {"tenant":"Tanjong Pagar Town Council"} },
+    
+      { name: 'Issue 403638 – Spalling/pipe', url: 'https://gofm.fmit.sg/pic/images/issueTaskPlan/I/403638/0_875DEBDB-DA66-4754-9881-CFA31C0B4A52.jpg',
+        filters: {"tenant":"Tanjong Pagar Town Council"} },
+    
+      { name: 'Issue 403624 – Missing table tiles', url: 'https://gofm.fmit.sg/pic/images/issueTaskPlan/I/403624/0_E6CA92BC-C70D-442F-B060-E44878288BF7.jpg',
+        filters: {"tenant":"Tanjong Pagar Town Council"} },
+    
+      { name: 'Issue 400403 – Peeling paintwork', url: 'https://gofm.fmit.sg/pic/images/issueTaskPlan/I/400403/0_D53207D7-D1E1-4EE2-BB2A-F6ECDD1E8ABD.jpg',
+        filters: {"tenant":"Tanjong Pagar Town Council"} },
+    
+      { name: 'Issue 400395 – Rusty railing/footing', url: 'https://gofm.fmit.sg/pic/images/issueTaskPlan/I/400395/0_DF601000-17B8-446C-A9CC-7E2B6C79FFED.jpg',
+        filters: {"tenant":"Tanjong Pagar Town Council"} },
+    
+      { name: 'Issue 400390 – Large crack', url: 'https://gofm.fmit.sg/pic/images/issueTaskPlan/I/400390/0_11CE25F9-D0AB-47F1-B21A-B56668295A8A.jpg',
+        filters: {"tenant":"Tanjong Pagar Town Council"} },
+    
+      // Existing generic samples
       { name: 'GOfm sample 1', url: 'https://gofm.fmit.sg/pic/images/issueTaskPlan/I/420580/0_651c4ff4-ba03-4557-9d7f-8670ad889fb3.jpg' },
       { name: 'GOfm sample 2', url: 'https://gofm.fmit.sg/pic/images/issueTaskPlan/I/420584/0_2f8b4ec7-2930-4982-ab8e-28746db023ad.jpg' },
       { name: 'GOfm sample 3', url: 'https://gofm.fmit.sg/pic/images/issueTaskPlan/I/420510/0_e734d7e0-bb11-4bcf-91fb-f1452f91d24a.jpg' },
       { name: 'GOfm sample 4', url: 'https://gofm.fmit.sg/pic/images/issueTaskPlan/I/420500/0_e3ff3eb7-537c-4c6d-a45d-9aa4ce255e34.jpg' },
-      // Added safe extras
       { name: 'Tiny red dot (data URI)', url: 'data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR42mP8/x8AAwMCAO1QpQ8AAAAASUVORK5CYII=' },
       { name: 'Public PNG (GitHub logo)', url: 'https://github.githubassets.com/images/modules/logos_page/GitHub-Mark.png' }
     ];
 
+    // --- replace existing renderTests with this version ---
     function renderTests(){
       const box = $("tests");
       box.innerHTML = '';
       TESTS.forEach(t=>{
+        const row = document.createElement('div');
+    
         const btn = document.createElement('button');
         btn.className = 'ghost';
         btn.textContent = t.name;
-        btn.addEventListener('click', ()=>{ $("imgUrl").value = t.url; showPreview(t.url); updateCurl(); });
-        const row = document.createElement('div');
+    
+        btn.addEventListener('click', ()=>{
+          $("imgUrl").value = t.url;
+          showPreview(t.url);
+          if (t.filters) $("filters").value = JSON.stringify(t.filters);
+          if (typeof t.k === 'number') $("k").value = String(t.k);
+          if (typeof t.min_score === 'number') $("minScore").value = String(t.min_score);
+          if (typeof t.num_candidates === 'number') $("numCandidates").value = String(t.num_candidates);
+          updateCurl();
+        });
+    
+        const span = document.createElement('span');
+        span.className='muted';
+        span.style.marginLeft = '.5rem';
+        span.textContent = t.url;
+    
+        // small badges showing what will be prefilled
+        const badges = document.createElement('span');
+        badges.style.marginLeft = '.5rem';
+        if (t.filters) { const b=document.createElement('span'); b.className='badge'; b.textContent='filters'; badges.appendChild(b); }
+        if (typeof t.k === 'number') { const b=document.createElement('span'); b.className='badge'; b.textContent=`k=${t.k}`; badges.appendChild(b); }
+        if (typeof t.min_score === 'number') { const b=document.createElement('span'); b.className='badge'; b.textContent=`min=${t.min_score}`; badges.appendChild(b); }
+        if (typeof t.num_candidates === 'number') { const b=document.createElement('span'); b.className='badge'; b.textContent=`cand=${t.num_candidates}`; badges.appendChild(b); }
+    
         row.appendChild(btn);
-        const span = document.createElement('span'); span.className='muted'; span.style.marginLeft = '.5rem'; span.textContent = t.url;
         row.appendChild(span);
+        row.appendChild(badges);
         box.appendChild(row);
       });
     }
-
+    
     // Wire events
     ["baseUrl","endpoint","imgUrl","k","minScore","numCandidates","filters","contentType"].forEach(id=>{
       const el = $(id); if(el) el.addEventListener('input', checkMixedAndPreflight);
