@@ -195,6 +195,49 @@
   <script>
     const $ = (id)=>document.getElementById(id);
     const topLed = $("topLed"), btnLed = $("btnLed"), statusText = $("statusText");
+    
+    // --- simple persistent settings (localStorage) ---
+    const STORAGE_KEY = 'fdemo.settings.v1';
+    
+    function loadSettings(){
+      try{
+        const s = JSON.parse(localStorage.getItem(STORAGE_KEY) || '{}');
+        if (s.baseUrl) $("baseUrl").value = s.baseUrl;
+        if (s.endpoint) $("endpoint").value = s.endpoint;
+        if (typeof s.sendCreds === 'boolean') $("sendCreds").checked = s.sendCreds;
+        if (s.contentType) $("contentType").value = s.contentType;
+      }catch(e){ console.warn('settings load failed', e); }
+    }
+    
+    function saveSettings(){
+      const s = {
+        baseUrl: $("baseUrl").value.trim(),
+        endpoint: $("endpoint").value.trim(),
+        sendCreds: $("sendCreds").checked,
+        contentType: $("contentType").value
+      };
+      try{ localStorage.setItem(STORAGE_KEY, JSON.stringify(s)); }
+      catch(e){ console.warn('settings save failed', e); }
+    }
+    
+    function clearSettings(){
+      localStorage.removeItem(STORAGE_KEY);
+    }
+    
+    // Save on user edits
+    ["baseUrl","endpoint","contentType"].forEach(id=>{
+      const el = $(id);
+      if (el) el.addEventListener('change', saveSettings);
+    });
+    $("sendCreds").addEventListener('change', saveSettings);
+    
+    // OPTIONAL: repurpose your Clear button to also wipe saved settings when Alt is held
+    $("btnClear").addEventListener('click', (ev)=>{
+      if (ev.altKey){ clearSettings(); alert("Saved API settings cleared."); }
+    });
+    
+    // Call once on load
+    loadSettings();
 
     const setLED = (el, state)=>{
       const map = { idle:"var(--idle)", searching:"var(--warn)", ok:"var(--ok)", error:"var(--err)" };
@@ -241,6 +284,7 @@
         d.appendChild(thumb); d.appendChild(body);
         wrap.appendChild(d);
       }
+      saveSettings();
     }
 
     function escapeHtml(str){ return str.replace(/[&<>"']/g, (m)=>({"&":"&amp;","<":"&lt;",">":"&gt;","\"":"&quot;","'":"&#39;"})[m]); }
@@ -341,6 +385,8 @@
         $("btnSearch").disabled = false;
         setTimeout(()=>setAllLED('idle'), 1500);
       }
+
+      saveSettings();
     }
 
     // Diagnostics
